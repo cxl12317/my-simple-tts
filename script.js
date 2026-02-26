@@ -7,6 +7,8 @@ const stopBtn = document.getElementById('stopBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 
 let voices = [];
+let mediaRecorder;
+let audioChunks = [];
 
 // 加载可用的语音列表
 function loadVoices() {
@@ -52,9 +54,12 @@ resumeBtn.addEventListener('click', () => {
 // 停止语音
 stopBtn.addEventListener('click', () => {
     speechSynthesis.cancel();
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
 });
 
-// --- 下载语音（调用Vercel API）---
+// --- 下载语音（纯前端录制实现）---
 downloadBtn.addEventListener('click', async () => {
     const text = textInput.value.trim();
     if (!text) {
@@ -67,29 +72,53 @@ downloadBtn.addEventListener('click', async () => {
         downloadBtn.textContent = '生成中...';
         downloadBtn.disabled = true;
 
-        // 调用我们自己的API
-        const response = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || '下载失败');
+        // 请求麦克风权限（用于录制）
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const destination = audioContext.createMediaStreamDestination();
+        const oscillator = audioContext.createOscillator();
+        oscillator.connect(destination);
+        oscillator.start();
+        oscillator.stop();
+
+        // 初始化录制器
+        mediaRecorder = new MediaRecorder(destination.stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const a = document.createElement('a');
+            a.href = audioUrl;
+            a.download = 'tts_output.mp3';
+            a.click();
+            URL.revokeObjectURL(audioUrl);
+            alert('语音文件已成功下载！');
+            downloadBtn.textContent = '下载';
+            downloadBtn.disabled = false;
+        };
+
+        // 开始录制并播放语音
+        mediaRecorder.start();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const selectedVoiceIndex = voiceSelect.value;
+        if (selectedVoiceIndex !== '') {
+            utterance.voice = voices[selectedVoiceIndex];
         }
+        utterance.onend = () => {
+            if (mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        };
+        speechSynthesis.speak(utterance);
 
-        // 触发下载
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const a = document.createElement('a');
-        a.href = audioUrl;
-        a.download = 'tts_output.mp3';
-        a.click();
-        URL.revokeObjectURL(audioUrl);
-
-        alert('语音文件已成功下载！');
     } catch (err) {
         console.error('下载失败：', err);
         alert(`下载失败: ${err.message}`);
-    } finally {
-        // 恢复按钮状态
         downloadBtn.textContent = '下载';
         downloadBtn.disabled = false;
     }
