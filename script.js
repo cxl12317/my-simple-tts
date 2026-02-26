@@ -1,39 +1,93 @@
+const textInput = document.getElementById('textInput');
+const voiceSelect = document.getElementById('voiceSelect');
+const speakBtn = document.getElementById('speakBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resumeBtn = document.getElementById('resumeBtn');
+const stopBtn = document.getElementById('stopBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 
-// 下载语音（使用Puter.js免费TTS API）
-downloadBtn.addEventListener('click', async () => {
-  const text = textInput.value.trim();
-  if (!text) {
-    alert('请先输入要转换的文本');
-    return;
-  }
+let voices = [];
 
-  try {
-    // 显示加载状态
-    downloadBtn.textContent = '生成中...';
-    downloadBtn.disabled = true;
-
-    // 调用Puter TTS API，直接生成MP3
-    const audioBlob = await puter.tts.synthesize(text, {
-      voice: 'zh-CN-XiaoxiaoNeural', // 选择中文音色“晓晓”
-      format: 'audio-16khz-128kbitrate-mono-mp3'
+// 加载可用的语音列表
+function loadVoices() {
+    voices = speechSynthesis.getVoices();
+    voiceSelect.innerHTML = '';
+    voices.forEach((voice, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(option);
     });
+}
 
-    // 触发下载
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const a = document.createElement('a');
-    a.href = audioUrl;
-    a.download = 'tts_output.mp3';
-    a.click();
-    URL.revokeObjectURL(audioUrl);
+// 初始化语音列表
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+}
+loadVoices();
 
-    alert('语音文件已成功下载！');
-  } catch (err) {
-    console.error('下载失败：', err);
-    alert(`下载失败: ${err.message}`);
-  } finally {
-    // 恢复按钮状态
-    downloadBtn.textContent = '下载';
-    downloadBtn.disabled = false;
-  }
+// 播放语音（浏览器原生 TTS）
+speakBtn.addEventListener('click', () => {
+    const text = textInput.value.trim();
+    if (!text) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const selectedVoiceIndex = voiceSelect.value;
+    if (selectedVoiceIndex !== '') {
+        utterance.voice = voices[selectedVoiceIndex];
+    }
+    speechSynthesis.speak(utterance);
+});
+
+// 暂停语音
+pauseBtn.addEventListener('click', () => {
+    speechSynthesis.pause();
+});
+
+// 继续播放
+resumeBtn.addEventListener('click', () => {
+    speechSynthesis.resume();
+});
+
+// 停止语音
+stopBtn.addEventListener('click', () => {
+    speechSynthesis.cancel();
+});
+
+// --- 下载语音（使用 Puter.js 免费 TTS API）---
+downloadBtn.addEventListener('click', async () => {
+    const text = textInput.value.trim();
+    if (!text) {
+        alert('请先输入要转换的文本');
+        return;
+    }
+
+    try {
+        // 显示加载状态
+        downloadBtn.textContent = '生成中...';
+        downloadBtn.disabled = true;
+
+        // 调用 Puter TTS API，直接生成 MP3
+        const audioBlob = await puter.tts.synthesize(text, {
+            voice: 'zh-CN-XiaoxiaoNeural', // 中文音色“晓晓”
+            format: 'audio-16khz-128kbitrate-mono-mp3'
+        });
+
+        // 触发下载
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = audioUrl;
+        a.download = 'tts_output.mp3';
+        a.click();
+        URL.revokeObjectURL(audioUrl);
+
+        alert('语音文件已成功下载！');
+    } catch (err) {
+        console.error('下载失败：', err);
+        alert(`下载失败: ${err.message}`);
+    } finally {
+        // 恢复按钮状态
+        downloadBtn.textContent = '下载';
+        downloadBtn.disabled = false;
+    }
 });
