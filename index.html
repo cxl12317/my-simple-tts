@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的 TTS 网页</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Google TTS (Vercel 部署)</title>
+    <style>
+        body { padding: 20px; max-width: 700px; margin: 0 auto; font-family: Arial; }
+        textarea { width: 100%; height: 120px; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 30px; background: #4285F4; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #3367D6; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>文本转语音（TTS）</h1>
-        <textarea id="textInput" placeholder="输入要转换的文本..."></textarea>
-        <div class="controls">
-            <select id="voiceSelect"></select>
-            <button id="speakBtn">播放</button>
-            <button id="pauseBtn">暂停</button>
-            <button id="resumeBtn">继续</button>
-            <button id="stopBtn">停止</button>
-            <button id="downloadBtn">下载</button>
-        </div>
-    </div>
+    <h1>Google 免费 TTS 工具</h1>
+    <textarea id="textInput" placeholder="输入任意文本，点击下载即可生成 MP3..."></textarea>
+    <button id="downloadBtn">下载 MP3</button>
+
     <script src="script.js"></script>
 </body>
 </html>
