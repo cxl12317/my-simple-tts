@@ -6,11 +6,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 调用微软Edge TTS API（免费，无密钥）
-    const ttsResponse = await fetch(`https://api.lb-0.hcjing.workers.dev/tts?text=${encodeURIComponent(text)}&voice=zh-CN-XiaoxiaoNeural`);
+    // 使用更稳定的 Edge TTS 代理服务
+    const ttsResponse = await fetch(
+      `https://edge-tts.deno.dev/api/tts?text=${encodeURIComponent(text)}&voice=zh-CN-XiaoxiaoNeural`
+    );
     
     if (!ttsResponse.ok) {
-      throw new Error('TTS服务调用失败');
+      const errorDetails = await ttsResponse.text();
+      throw new Error(`TTS服务调用失败 (${ttsResponse.status}): ${errorDetails}`);
     }
 
     const audioBuffer = await ttsResponse.arrayBuffer();
@@ -20,6 +23,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Disposition', `attachment; filename="tts_output.mp3"`);
     res.send(Buffer.from(audioBuffer));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('TTS API Error:', error);
+    res.status(500).json({ error: error.message || '下载失败' });
   }
 }
