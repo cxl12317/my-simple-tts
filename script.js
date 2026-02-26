@@ -71,7 +71,8 @@ downloadBtn.addEventListener('click', async () => {
         const response = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
         
         if (!response.ok) {
-            throw new Error('下载失败');
+            const errorData = await response.json();
+            throw new Error(errorData.error || '下载失败');
         }
 
         // 触发下载
